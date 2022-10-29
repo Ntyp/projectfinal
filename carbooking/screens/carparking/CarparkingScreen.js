@@ -5,16 +5,14 @@ import React, {useState, useEffect} from 'react';
 const CarparkingScreen = ({navigation}) => {
   const [searchQuery, setSearchQuery] = useState('');
   const onChangeSearch = query => setSearchQuery(query);
-  const onPressDetail = id => {
-    // alert('Hello');
-    navigation.navigate('CarparkingDetail', {id: id});
+  const onPressDetail = (id, place) => {
+    navigation.navigate('CarparkingDetail', {id: id, place: place});
   };
   const [items, setItems] = useState([]);
   useEffect(() => {
     fetch('http://10.0.2.2:6969/api/carparking')
       .then(res => res.json())
       .then(result => {
-        console.log(result.data);
         setItems(result.data);
       });
   }, []);
@@ -32,8 +30,10 @@ const CarparkingScreen = ({navigation}) => {
             />
             {items.map(item => (
               <Pressable
-                onPress={() => onPressDetail(item.parking_id)}
-                key={item.id}>
+                onPress={() =>
+                  onPressDetail(item.parking_id, item.parking_name)
+                }
+                key={item.parking_id}>
                 <View style={styles.showCard}>
                   <Card>
                     <Card.Cover source={{uri: 'https://picsum.photos/700'}} />

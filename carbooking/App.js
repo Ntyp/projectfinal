@@ -19,7 +19,7 @@ import CarparkingScreen from './screens/carparking/CarparkingScreen';
 import CarparkingDetailScreen from './screens/carparking/CarparkingDetailScreen';
 
 // Footer
-import Footer from './components/img/Footer';
+// import Footer from './components/Footer';
 const Stack = createNativeStackNavigator();
 
 const App = () => {
@@ -59,6 +59,16 @@ const App = () => {
         <Stack.Screen
           name="BookingDetail"
           component={BookingDetailScreen}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="History"
+          component={HistoryScreen}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="HistoryDetail"
+          component={HistoryDetail}
           options={{headerShown: false}}
         />
       </Stack.Navigator>

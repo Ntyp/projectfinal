@@ -1,45 +1,26 @@
-import {StyleSheet, Text, View, Image, ImageBackground} from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  Image,
+  ImageBackground,
+  Linking,
+} from 'react-native';
 import React, {useState, useEffect} from 'react';
 import {Button, BottomNavigation, Avatar} from 'react-native-paper';
-const MusicRoute = () => <Text>Music</Text>;
-const AlbumsRoute = () => <Text>Albums</Text>;
-const RecentsRoute = () => <Text>Recents</Text>;
-const NotificationsRoute = () => <Text>Notifications</Text>;
 
 const CarparkingDetailScreen = ({navigation, route}) => {
   const image = {uri: 'https://picsum.photos/700'};
-  const [index, setIndex] = useState(0);
-  const [routes] = React.useState([
-    {
-      key: 'music',
-      title: 'Favorites',
-      focusedIcon: 'heart',
-      unfocusedIcon: 'heart-outline',
-    },
-    {key: 'albums', title: 'Albums', focusedIcon: 'album'},
-    {key: 'recents', title: 'Recents', focusedIcon: 'history'},
-    {
-      key: 'notifications',
-      title: 'Notifications',
-      focusedIcon: 'bell',
-      unfocusedIcon: 'bell-outline',
-    },
-  ]);
-
-  const renderScene = BottomNavigation.SceneMap({
-    music: MusicRoute,
-    albums: AlbumsRoute,
-    recents: RecentsRoute,
-    notifications: NotificationsRoute,
-  });
-
   const [item, setItem] = useState({});
+  const onPressDetail = (id, place, parkid) => {
+    navigation.navigate('Booking', {id: id, place: place, parkid: parkid});
+  };
   useEffect(() => {
     fetch('http://10.0.2.2:6969/api/carparking/' + route.params.id)
       .then(res => res.json())
       .then(result => {
-        console.log(result.data);
-        setItem(result.data);
+        console.log('result', result.data[0]);
+        setItem(result.data[0]);
       });
   }, []);
 
@@ -53,9 +34,14 @@ const CarparkingDetailScreen = ({navigation, route}) => {
         <View style={styles.content}>
           <Text style={styles.namePlace}>{item.parking_name}</Text>
           <Text style={styles.locationPlace}>
-            Bangkok,Thailand <Text style={styles.txtMap}>Map Direction</Text>
+            Bangkok,Thailand
+            <Text
+              style={styles.txtMap}
+              onPress={() => Linking.openURL(item.parking_locationurl)}>
+              Map Direction
+            </Text>
           </Text>
-          <Text style={styles.locationPlace}>{item.parking_status}</Text>
+          <Text style={styles.locationPlace}>Status:{item.parking_status}</Text>
           <View style={styles.hrLine}></View>
           <Text style={styles.topicPlace}>Detail</Text>
           <Text style={styles.detailPlace}>{item.parking_detail}</Text>
@@ -64,7 +50,10 @@ const CarparkingDetailScreen = ({navigation, route}) => {
           <Button
             style={styles.btnBook}
             mode="contained"
-            onPress={() => navigation.navigate('Booking')}>
+            onPress={() =>
+              onPressDetail(item.parking_id, item.parking_name, item.parking_id)
+            }
+            key={item.parking_id}>
             Book Now
           </Button>
         </View>

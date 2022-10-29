@@ -9,49 +9,77 @@ import {
   Text,
 } from 'react-native-paper';
 import React, {useState, useEffect} from 'react';
+import DatePicker from 'react-native-date-picker';
+import {Dropdown} from 'react-native-element-dropdown';
+import AntDesign from 'react-native-vector-icons/AntDesign';
+import moment from 'moment';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const MusicRoute = () => <Text>Music</Text>;
-const AlbumsRoute = () => <Text>Albums</Text>;
-const RecentsRoute = () => <Text>Recents</Text>;
-const NotificationsRoute = () => <Text>Notifications</Text>;
+const BookingScreen = ({navigation, route}) => {
+  const [open, setOpen] = useState(false);
+  // Type Data Car
+  const typeData = [
+    {label: 'Toyota', value: 'Toyota'},
+    {label: 'Honda', value: 'Honda'},
+    {label: 'Isuzu', value: 'Isuzu'},
+    {label: 'Mitsubishi', value: 'Mitsubishi'},
+    {label: 'Ford', value: 'Ford'},
+    {label: 'Nissan', value: 'Nissan'},
+    {label: 'MG', value: 'MG'},
+    {label: 'Mazda', value: 'Mazda'},
+    {label: 'Suzuki', value: 'Suzuki'},
+    {label: 'Mercedes-Benz', value: 'Mercedes-Benz'},
+    {label: 'BMW', value: 'BMW'},
+  ];
 
-const BookingScreen = ({navigation}) => {
+  // Get Carparking
+  const [item, setItem] = useState([]);
+  const {place} = route.params;
   const [name, setName] = useState('');
   const [tel, setTel] = useState('');
   const [plate, setPlate] = useState('');
-  const [type, setType] = useState('');
-  const [timeBooking, setTimeBooking] = useState('');
+  const [type, setType] = useState(null);
+  const [timeBooking, setTimeBooking] = useState(new Date());
+  const [user, setUser] = useState('');
 
-  const [index, setIndex] = React.useState(0);
-  const [routes] = React.useState([
-    {
-      key: 'music',
-      title: 'Favorites',
-      focusedIcon: 'heart',
-      unfocusedIcon: 'heart-outline',
-    },
-    {key: 'albums', title: 'Albums', focusedIcon: 'album'},
-    {key: 'recents', title: 'Recents', focusedIcon: 'history'},
-    {
-      key: 'notifications',
-      title: 'Notifications',
-      focusedIcon: 'bell',
-      unfocusedIcon: 'bell-outline',
-    },
-  ]);
-
-  const renderScene = BottomNavigation.SceneMap({
-    music: MusicRoute,
-    albums: AlbumsRoute,
-    recents: RecentsRoute,
-    notifications: NotificationsRoute,
-  });
+  const handleBooking = async () => {
+    const userId = await AsyncStorage.getItem('userid');
+    const responses = await fetch(
+      'http://10.0.2.2:6969/api/bookingcarparking',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          booking_place: place,
+          booking_name: name,
+          booking_tel: tel,
+          booking_plate: plate,
+          booking_type: type,
+          booking_date: moment().format('YYYY-MM-DD'),
+          booking_time: timeBooking,
+          user: userId,
+        }),
+      },
+    )
+      .then(response => response.json())
+      .then(response => {
+        if (response.status == 'ok') {
+          alert('Booking Successfully');
+          navigation.navigate('Home');
+        } else {
+          alert('Booking Failed');
+          navigation.navigate('Home');
+        }
+      });
+  };
 
   return (
     <View style={styles.backGround}>
       <View style={styles.container}>
         <Text style={styles.headingText}>Booking</Text>
-        <Text style={styles.namePlace}>Place:</Text>
+        <Text style={styles.headingText}>Place:{route.params.place}</Text>
         <TextInput
           style={styles.inputText}
           label="Name"
@@ -73,25 +101,46 @@ const BookingScreen = ({navigation}) => {
           mode="flat"
           onChangeText={text => setPlate(text)}
         />
-        <TextInput
-          style={styles.inputText}
-          label="Type"
+        <Dropdown
+          style={styles.dropdown}
+          placeholderStyle={styles.placeholderStyle}
+          selectedTextStyle={styles.selectedTextStyle}
+          inputSearchStyle={styles.inputSearchStyle}
+          iconStyle={styles.iconStyle}
+          data={typeData}
+          search
+          maxHeight={300}
+          labelField="label"
+          valueField="value"
+          placeholder="Type Car"
+          searchPlaceholder="Search..."
           value={type}
-          mode="flat"
-          onChangeText={text => setType(text)}
+          onChange={item => {
+            setType(item.value);
+          }}
         />
-        <TextInput
-          style={styles.inputText}
-          label="TimeBooking"
-          value={timeBooking}
-          mode="flat"
-          onChangeText={text => setTimeBooking(text)}
+        <Button onPress={() => setOpen(true)}>Select Time Booking</Button>
+        <DatePicker
+          modal
+          open={open}
+          date={timeBooking}
+          mode="time"
+          onConfirm={date => {
+            setOpen(false);
+            setTimeBooking(date);
+          }}
+          onCancel={() => {
+            setOpen(false);
+          }}
         />
-
+        <Text style={styles.textwarning}>
+          ** Booking can be appointment for up to 1 hour. **
+        </Text>
         <Button
           style={styles.btnBooking}
           mode="contained"
-          onPress={() => navigation.navigate('Home')}>
+          // onPress={handleBooking}
+          onPress={handleBooking}>
           Booking
         </Button>
       </View>
@@ -139,4 +188,38 @@ const styles = StyleSheet.create({
     backgroundColor: '#2f2f2f',
   },
   namePlace: {marginBottom: 10},
+  textwarning: {
+    alignSelf: 'center',
+    color: '#dc3545',
+    fontWeight: '700',
+    marginBottom: 10,
+  },
+  dropdown: {
+    height: 62,
+    borderBottomColor: 'gray',
+    borderBottomWidth: 0.5,
+    backgroundColor: '#ececec',
+    width: '100%',
+    borderTopLeftRadius: 4,
+    borderTopRightRadius: 4,
+  },
+  icon: {
+    marginRight: 5,
+  },
+  placeholderStyle: {
+    marginLeft: 10,
+    fontSize: 16,
+  },
+  selectedTextStyle: {
+    marginLeft: 10,
+    fontSize: 16,
+  },
+  iconStyle: {
+    width: 20,
+    height: 20,
+  },
+  inputSearchStyle: {
+    height: 40,
+    fontSize: 16,
+  },
 });

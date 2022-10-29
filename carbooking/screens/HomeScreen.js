@@ -1,6 +1,9 @@
 import {StyleSheet, Text, View, Image} from 'react-native';
 import {Button, FAB, Portal, Provider} from 'react-native-paper';
 import React, {useState, useEffect} from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import EncryptedStorage from 'react-native-encrypted-storage';
+import Footer from '../components/Footer';
 
 const HomeScreen = ({navigation}) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -8,6 +11,31 @@ const HomeScreen = ({navigation}) => {
   const [state, setState] = React.useState({open: false});
   const onStateChange = ({open}) => setState({open});
   const {open} = state;
+
+  const [user, setUser] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchUser = async () => {
+    const accessToken = await AsyncStorage.getItem('@accessToken');
+    const response = await fetch('http://10.0.2.2:6969/api/auth/user', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + accessToken,
+      },
+    });
+    const data = await response.json();
+    const userId = data.user[0].userid;
+    setUser(userId);
+    setIsLoading(false);
+    AsyncStorage.setItem('userid', JSON.stringify(data.user[0].userid));
+    EncryptedStorage.setItem('userid', JSON.stringify(data.user[0].userid));
+  };
+
+  useEffect(() => {
+    fetchUser();
+  }, [isLoading]);
+
   return (
     <View style={styles.container}>
       <Image
@@ -27,6 +55,14 @@ const HomeScreen = ({navigation}) => {
         onPress={() => navigation.navigate('Carparking')}>
         Get Started
       </Button>
+
+      <Button
+        style={styles.btnHistory}
+        mode="contained"
+        onPress={() => navigation.navigate('History', {getId: user})}>
+        History Booking
+      </Button>
+
       <Provider>
         <Portal>
           <FAB.Group
@@ -97,5 +133,12 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: '#2f2f2f',
     justifyContent: 'flex-end',
+  },
+  btnHistory: {
+    paddingBottom: 5,
+    paddingTop: 5,
+    borderRadius: 5,
+    backgroundColor: '#2f2f2f',
+    marginTop: 15,
   },
 });
