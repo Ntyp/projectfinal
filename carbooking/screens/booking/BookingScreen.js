@@ -35,6 +35,7 @@ const BookingScreen = ({navigation, route}) => {
   // Get Carparking
   const [item, setItem] = useState([]);
   const {place} = route.params;
+  const {parkid} = route.params;
   const [name, setName] = useState('');
   const [tel, setTel] = useState('');
   const [plate, setPlate] = useState('');
@@ -52,6 +53,7 @@ const BookingScreen = ({navigation, route}) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          parking_id: parkid,
           booking_place: place,
           booking_name: name,
           booking_tel: tel,

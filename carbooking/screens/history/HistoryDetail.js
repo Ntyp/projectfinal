@@ -19,11 +19,10 @@ const HistoryDetail = ({navigation, route}) => {
     navigation.navigate('Home');
   };
 
-  const parkingCar = async () => {
-    fetch('', {
-      method: 'POST',
+  const goIn = async () => {
+    fetch('http://10.0.2.2:6969/api/history/goin/' + route.params.id, {
+      method: 'PUT',
       headers: {
-        Accept: 'application/json',
         'Content-Type': 'application/json',
       },
 
@@ -34,9 +33,18 @@ const HistoryDetail = ({navigation, route}) => {
   };
 
   const goOut = async () => {
+    fetch('http://10.0.2.2:6969/api/history/goout/' + route.params.id, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+
+      body: JSON.stringify({}),
+    });
     alert(
       'การจอดเสร็จสิ้นขอบคุณสำหรับการใช้บริการ กรุณาเตรียมเงินให้พร้อมและจ่ายเงินได้ที่พนักงานควบคุมลานจอด',
     );
+    navigation.navigate('Home');
   };
 
   const fetchDataParking = async () => {
@@ -88,22 +96,14 @@ const HistoryDetail = ({navigation, route}) => {
           <Text style={styles.detailPlace}>{item1.booking_timeout}</Text>
           <Text style={styles.topicPlace}>Cost</Text>
           <Text style={styles.spanContent}>{item1.booking_price}฿</Text>
-          {/*             // onPress={() => onPressDetail(item.parking_id, item.parking_name)}
-            // key={item.parking_id} */}
-          {/* <Button style={styles.btnBook} mode="contained">
-            Let's park
-          </Button> */}
 
-          {item1.booking_status == 'รอเวลาเข้าจอด' ? (
-            <Button
-              style={styles.btnBook}
-              mode="contained"
-              onPress={parkingCar}>
+          {item1.booking_status == 'Waiting' ? (
+            <Button style={styles.btnBook} mode="contained" onPress={goIn}>
               Let's park
             </Button>
           ) : null}
 
-          {item1.booking_status == 'กำลังจอด' ? (
+          {item1.booking_status == 'Arrive' ? (
             <Button style={styles.btnBook1} mode="contained" onPress={goOut}>
               Finish
             </Button>
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     paddingTop: 10,
     borderRadius: 100,
-    backgroundColor: '#FF0000',
+    backgroundColor: '#dc3545',
     justifyContent: 'flex-end',
     marginTop: 20,
   },

@@ -6,6 +6,7 @@ import EncryptedStorage from 'react-native-encrypted-storage';
 import Footer from '../components/Footer';
 
 const HomeScreen = ({navigation}) => {
+  const [item1, setItem1] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
   const onChangeSearch = query => setSearchQuery(query);
   const [state, setState] = React.useState({open: false});
@@ -26,6 +27,8 @@ const HomeScreen = ({navigation}) => {
     });
     const data = await response.json();
     const userId = data.user[0].userid;
+    setItem1(data.user[0]);
+    console.log(data.user[0]);
     setUser(userId);
     setIsLoading(false);
     AsyncStorage.setItem('userid', JSON.stringify(data.user[0].userid));
@@ -44,26 +47,38 @@ const HomeScreen = ({navigation}) => {
       />
       <Text style={styles.headingText}>Find a place to park</Text>
       <Text style={styles.subText}>
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
-        tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
-        veniam
+        This program created for KMUTNB student.
       </Text>
 
-      <Button
-        style={styles.btnStarted}
-        mode="contained"
-        onPress={() => navigation.navigate('Carparking')}>
-        Get Started
-      </Button>
+      {item1.status === 'user' ? (
+        <Button
+          style={styles.btnStarted}
+          mode="contained"
+          onPress={() => navigation.navigate('Carparking')}>
+          Get Started
+        </Button>
+      ) : null}
 
-      <Button
-        style={styles.btnHistory}
-        mode="contained"
-        onPress={() => navigation.navigate('History', {getId: user})}>
-        History Booking
-      </Button>
+      {item1.status === 'user' ? (
+        <Button
+          style={styles.btnHistory}
+          mode="contained"
+          onPress={() => navigation.navigate('History', {getId: user})}>
+          History Booking
+        </Button>
+      ) : null}
 
-      <Provider>
+      {item1.status === 'admin' ? (
+        <Button
+          style={styles.btnHistory}
+          mode="contained"
+          onPress={() => navigation.navigate('CreateCarparking')}>
+          Create Carparking
+        </Button>
+      ) : null}
+      <Text style={styles.logoutText}>Logout</Text>
+
+      {/* <Provider>
         <Portal>
           <FAB.Group
             open={open}
@@ -94,7 +109,7 @@ const HomeScreen = ({navigation}) => {
             }}
           />
         </Portal>
-      </Provider>
+      </Provider> */}
     </View>
   );
 };
@@ -140,5 +155,11 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: '#2f2f2f',
     marginTop: 15,
+  },
+  logoutText: {
+    alignSelf: 'center',
+    marginTop: 10,
+    color: '#dc3545',
+    fontWeight: '700',
   },
 });

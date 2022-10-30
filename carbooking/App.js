@@ -18,6 +18,9 @@ import HistoryDetail from './screens/history/HistoryDetail';
 import CarparkingScreen from './screens/carparking/CarparkingScreen';
 import CarparkingDetailScreen from './screens/carparking/CarparkingDetailScreen';
 
+// Admin
+import CreateParkingScreen from './screens/admin/CreateParkingScreen';
+
 // Footer
 // import Footer from './components/Footer';
 const Stack = createNativeStackNavigator();
@@ -69,6 +72,11 @@ const App = () => {
         <Stack.Screen
           name="HistoryDetail"
           component={HistoryDetail}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="CreateCarparking"
+          component={CreateParkingScreen}
           options={{headerShown: false}}
         />
       </Stack.Navigator>

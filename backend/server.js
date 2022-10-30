@@ -7,12 +7,8 @@ const bodyParser = require('body-parser');
 var jsonParser = bodyParser.json();
 const bcrypt = require('bcrypt');
 var jwt = require('jsonwebtoken');
-
-// const moment = require('momentjs');
-// const { result } = require('lodash');
 var moment = require('moment');
 const { format } = require('date-fns');
-// const { result } = require('lodash');
 const secret = 'secToken';
 const saltRounds = 10;
 require('dotenv').config();
@@ -149,22 +145,24 @@ app.post('/api/bookingcarparking', function (req, res, next) {
   var date = req.body.booking_date;
   var user = req.body.user;
 
+  var formatTime = moment(time).format('HH:mm:ss');
+
+  var chooseLane = 0;
+  var setLane = false;
+  var min = 99;
   // res.json(req.body);
   console.log(req.body);
-  console.log(moment(time).format('HH:mm:ss'));
-  console.log(moment().format('HH:mm:ss'));
 
   // Step1 Check bookingtime < 1HR ?
   var hourDiff = moment(time).diff(moment(), 'minute');
   console.log(hourDiff);
-  if (hourDiff >= 60 && hourDiff <= 120) {
+  if (hourDiff >= 60) {
     connection.query(
       'SELECT * FROM parking WHERE parking_id = ?',
       [placeId],
       function (err, results, fields) {
         // Step2 Check full count ?
         console.log('eiei');
-        res.json(results);
         var quantity = results[0].parking_quantity;
         var count = results[0].parking_count;
         // console.log(quantity);
@@ -180,6 +178,28 @@ app.post('/api/bookingcarparking', function (req, res, next) {
                 res.json({ status: 'error', message: err });
                 return;
               }
+              // Insert แบบไม่มีlane
+              connection.query(
+                'INSERT INTO booking (parking_id,booking_place,booking_name,booking_tel,booking_plate,booking_type,booking_time,booking_date,booking_status,booking_user) VALUES (?,?,?,?,?,?,?,?,?,?)',
+                [
+                  placeId,
+                  place,
+                  name,
+                  tel,
+                  plate,
+                  type,
+                  formatTime,
+                  date,
+                  'Waiting',
+                  user,
+                ],
+                function (err, results, fields) {
+                  if (err) {
+                    console.log(err);
+                  }
+                }
+              );
+
               // Step4 Find lane
               var lane = 1;
               for (var lane = 1; lane <= count; lane++) {
@@ -188,39 +208,33 @@ app.post('/api/bookingcarparking', function (req, res, next) {
                   [placeId, lane],
                   function (err, results, fields) {
                     if (results[0].parking_plate == null || '') {
-                      var chooseLane = results[0].parking_lane;
-                      console.log('chooseLane', chooseLane);
+                      setLane = true;
+                      if (results[0].parking_lane < min) {
+                        min = results[0].parking_lane;
+                      }
+                      chooseLane = results[0].parking_lane;
+                      connection.query(
+                        'UPDATE parking_detail SET parking_plate = ? WHERE parking_id = ? AND parking_lane = ?',
+                        [plate, placeId, min],
+                        function (err, results, fields) {
+                          connection.query(
+                            'UPDATE booking SET booking_lane = ? WHERE booking_id = ?',
+                            [min, placeId],
+                            function (err, results, fields) {}
+                          );
+                        }
+                      );
                       return;
                     }
                   }
                 );
-                break;
+                // หาตัวแปรนี้ไม่เจอ
+                if (setLane == true) {
+                  console.log('หยุดที่:', chooseLane);
+                  break;
+                }
               }
-              // connection.query(
-              //   'UPDATE parking_detail SET parking_plate = ? WHERE parking_id = ? AND parking_lane = ?',
-              //   [plate, placeId, chooseLane],
-              //   function (err, results, fields) {
-              //     connection.query(
-              //       'INSERT INTO booking (booking_place,booking_name,booking_tel,booking_plate,booking_type,booking_lane,booking_time,booking_date,booking_status,booking_user) VALUES (?,?,?,?,?,?,?,?,?,?)',
-              //       [
-              //         place,
-              //         name,
-              //         tel,
-              //         plate,
-              //         type,
-              //         chooseLane,
-              //         time,
-              //         date,
-              //         'Waiting',
-              //         user,
-              //       ],
-              //       function (err, results, fields) {
-              //         res.json({ status: 'ok' });
-              //         return;
-              //       }
-              //     );
-              //   }
-              // );
+              res.json({ status: 'ok' });
             }
           );
         } else {
@@ -260,7 +274,35 @@ app.put('/api/history/goin/:id', function (req, res, next) {
     'UPDATE booking SET booking_status = ? WHERE booking_id = ?',
     ['Arrive', req.params['id']],
     function (err, results, fields) {
-      res.json({ status: 'ok' });
+      // res.json({ status: 'ok' });
+      connection.query(
+        'SELECT * FROM booking WHERE booking_id = ?',
+        [req.params['id']],
+        function (err, results, fields) {
+          res.json({ status: 'ok', data: results });
+          var parking_id = results[0].parking_id;
+          var plate = results[0].parking_plate;
+          var tel = results[0].parking_tel;
+          var type = results[0].parking_type;
+          var lane = results[0].parking_lane;
+          connection.query(
+            'SELECT * FROM parking WHERE parking_id = ?',
+            [parking_id],
+            function (err, results, fields) {
+              // res.json({ status: 'ok' });
+              var tokenBot = results[0].parking_bot;
+              const lineNotify = require('line-notify-nodejs')(tokenBot);
+              lineNotify
+                .notify({
+                  message: 'แจ้งเตือนนำรถเข้าจอด:',
+                })
+                .then(() => {
+                  console.log('send completed!');
+                });
+            }
+          );
+        }
+      );
     }
   );
 });
@@ -328,6 +370,15 @@ app.put('/api/history/goout/:id', function (req, res, next) {
               res.json({ status: 'ok' });
             }
           );
+          var tokenBot = results[0].parking_bot;
+          const lineNotify = require('line-notify-nodejs')(tokenBot);
+          lineNotify
+            .notify({
+              message: 'แจ้งเตือนนำรถออก:',
+            })
+            .then(() => {
+              console.log('send completed!');
+            });
         }
       );
     }
@@ -348,9 +399,10 @@ app.post('/api/createcarparking', function (req, res, next) {
   var parking_img = req.body.img;
   var parking_detail = req.body.detail;
   var parking_locationurl = req.body.locationurl;
+  var parking_bot = req.body.bot;
 
   connection.execute(
-    'INSERT INTO parking (parking_name,parking_name_th,parking_quantity,parking_count,parking_price,parking_status,parking_img,parking_detail,parking_locationurl) VALUES (?,?,?,?,?,?,?,?,?)',
+    'INSERT INTO parking (parking_name,parking_name_th,parking_quantity,parking_count,parking_price,parking_status,parking_img,parking_detail,parking_locationurl,parking_bot) VALUES (?,?,?,?,?,?,?,?,?,?)',
     [
       parking_name,
       parking_name_th,
@@ -361,6 +413,7 @@ app.post('/api/createcarparking', function (req, res, next) {
       parking_img,
       parking_detail,
       parking_locationurl,
+      parking_bot,
     ],
     function (err, results, fields) {
       if (err) {
@@ -392,26 +445,6 @@ app.post('/api/createcarparking', function (req, res, next) {
     }
   );
 });
-
-// app.post('/api/createdetail', function (req, res, next) {
-//   var lane = 1;
-//   while (lane <= 5) {
-//     connection.execute(
-//       'INSERT INTO parking_detail (parking_id,parking_lane,parking_plate,parking_timein,parking_timeout,owner) VALUES (?,?,?,?,?,?)',
-//       [99, lane, null, null, null, 22],
-//       function (err, results, fields) {
-//         if (err) {
-//           res.json({ status: 'error', message: err });
-//           return;
-//         }
-//         res.status(200).send({ message: results });
-//         console.log('laneInSide', lane);
-//       }
-//     );
-//     console.log(lane);
-//     lane++;
-//   }
-// });
 
 const PORT = process.env.PORT;
 app.listen(6969, function () {
