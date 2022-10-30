@@ -1,13 +1,6 @@
-import {
-  StyleSheet,
-  Text,
-  View,
-  Image,
-  ImageBackground,
-  Linking,
-} from 'react-native';
+import {StyleSheet, Text, View, ImageBackground, Linking} from 'react-native';
 import React, {useState, useEffect} from 'react';
-import {Button, BottomNavigation, Avatar} from 'react-native-paper';
+import {Button} from 'react-native-paper';
 
 const CarparkingDetailScreen = ({navigation, route}) => {
   const image = {uri: 'https://picsum.photos/700'};

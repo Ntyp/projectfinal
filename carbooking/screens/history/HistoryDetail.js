@@ -8,11 +8,31 @@ import {
 } from 'react-native';
 import React, {useState, useEffect} from 'react';
 import {Button, BottomNavigation, Avatar} from 'react-native-paper';
+import MQTT from 'sp-react-native-mqtt';
 
 const HistoryDetail = ({navigation, route}) => {
   const image = {uri: 'https://picsum.photos/700'};
   const [item, setItem] = useState({});
   const [item1, setItem1] = useState({});
+  const publishBarrier = status => {
+    MQTT.createClient({
+      uri: 'mqtt://broker.mqttdashboard.com:1883',
+    })
+      .then(function (client) {
+        client.on('closed', function () {
+          console.log('mqtt.event.closed');
+        });
+        client.on('connect', function () {
+          console.log('connected');
+          client.publish('barrier/status', `${status}`, 0, false);
+          // client.publish('user/booking',`${status}`,0,false);
+        });
+        client.connect();
+      })
+      .catch(function (err) {
+        console.log(err);
+      });
+  };
 
   const onPressDetail = (id, place) => {
     navigation.navigate('Booking', {id: id, place: place});
@@ -28,6 +48,7 @@ const HistoryDetail = ({navigation, route}) => {
 
       body: JSON.stringify({}),
     });
+    publishBarrier('open');
     alert('ยินดีด้วยคุณมาถึงที่จอดรถเรียบร้อย');
     navigation.navigate('Home');
   };

@@ -2,6 +2,7 @@ import {StyleSheet, Text, View, ScrollView, Pressable} from 'react-native';
 import {Card, Searchbar, Title, Paragraph} from 'react-native-paper';
 import React, {useState, useEffect} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import MQTT from 'sp-react-native-mqtt';
 
 const HistoryScreen = ({navigation, route}) => {
   const [items, setItems] = useState([]);
@@ -9,6 +10,27 @@ const HistoryScreen = ({navigation, route}) => {
 
   const {getId} = route.params;
   const onPressDetail = (id, place, parkid) => {
+    const publishUser = status => {
+      MQTT.createClient({
+        uri: 'mqtt://broker.mqttdashboard.com:1883',
+      })
+        .then(function (client) {
+          client.on('closed', function () {
+            console.log('mqtt.event.closed');
+          });
+          client.on('connect', function () {
+            console.log('connected');
+            // client.publish('barrier/status',`${status}`,0,false);
+            client.publish('user/booking', `${status}`, 0, false);
+          });
+          client.connect();
+        })
+        .catch(function (err) {
+          console.log(err);
+        });
+    };
+
+    publishUser('http://10.0.2.2:6969/api/booking/' + getId);
     navigation.navigate('HistoryDetail', {
       id: id,
       place: place,

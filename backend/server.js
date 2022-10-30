@@ -2,6 +2,7 @@ var express = require('express');
 var cors = require('cors');
 var app = express();
 const mysql = require('mysql2');
+var cron = require('node-cron');
 const morgan = require('morgan');
 const bodyParser = require('body-parser');
 var jsonParser = bodyParser.json();
@@ -20,10 +21,10 @@ app.use(cors());
 
 // Connect Database
 const connection = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: '',
-  database: 'carparking',
+  host: 'o2olb7w3xv09alub.cbetxkdyhwsb.us-east-1.rds.amazonaws.com',
+  user: 'sj5gup1h3zr374r7',
+  password: 'd60dnzdm9kvob51l',
+  database: 'r4hfk6veliciu8fs',
 });
 console.log('Database  Connected!!');
 
@@ -79,6 +80,17 @@ app.post('/api/login', function (req, res, next) {
       });
     }
   );
+});
+
+app.delete('/api/logout', jsonParser, function (req, res) {
+  const authHeader = req.headers['Authorization'];
+  jwt.sign(authHeader, '', { expiresIn: 1 }, (logout, err) => {
+    if (logout) {
+      res.send({ msg: 'You have been Logged Out' });
+    } else {
+      res.send({ msg: 'Error' });
+    }
+  });
 });
 
 app.post('/api/authen', jsonParser, function (req, res, next) {
@@ -154,97 +166,110 @@ app.post('/api/bookingcarparking', function (req, res, next) {
   console.log(req.body);
 
   // Step1 Check bookingtime < 1HR ?
-  var hourDiff = moment(time).diff(moment(), 'minute');
-  console.log(hourDiff);
-  if (hourDiff >= 60) {
-    connection.query(
-      'SELECT * FROM parking WHERE parking_id = ?',
-      [placeId],
-      function (err, results, fields) {
-        // Step2 Check full count ?
-        console.log('eiei');
-        var quantity = results[0].parking_quantity;
-        var count = results[0].parking_count;
-        // console.log(quantity);
+  // var hourDiff = moment(time).diff(moment(), 'minute');
+  // console.log('hourDiff', hourDiff);
+  // if (hourDiff >= 60) {
+  connection.query(
+    'SELECT * FROM parking WHERE parking_id = ?',
+    [placeId],
+    function (err, results, fields) {
+      // Step2 Check full count ?
+      console.log('eiei');
+      var quantity = results[0].parking_quantity;
+      var count = results[0].parking_count;
+      // console.log(quantity);
 
-        if (quantity < count) {
-          //  Step3 Update Quatity +1
-          var newQuatity = results[0].parking_quantity + 1;
-          connection.execute(
-            'UPDATE parking SET parking_quantity = ? WHERE parking_id = ?',
-            [newQuatity, placeId],
-            function (err, results, fields) {
-              if (err) {
-                res.json({ status: 'error', message: err });
-                return;
-              }
-              // Insert แบบไม่มีlane
-              connection.query(
-                'INSERT INTO booking (parking_id,booking_place,booking_name,booking_tel,booking_plate,booking_type,booking_time,booking_date,booking_status,booking_user) VALUES (?,?,?,?,?,?,?,?,?,?)',
-                [
-                  placeId,
-                  place,
-                  name,
-                  tel,
-                  plate,
-                  type,
-                  formatTime,
-                  date,
-                  'Waiting',
-                  user,
-                ],
-                function (err, results, fields) {
-                  if (err) {
-                    console.log(err);
-                  }
-                }
-              );
-
-              // Step4 Find lane
-              var lane = 1;
-              for (var lane = 1; lane <= count; lane++) {
-                connection.query(
-                  'SELECT * FROM parking_detail WHERE parking_id = ? AND parking_lane = ?',
-                  [placeId, lane],
-                  function (err, results, fields) {
-                    if (results[0].parking_plate == null || '') {
-                      setLane = true;
-                      if (results[0].parking_lane < min) {
-                        min = results[0].parking_lane;
-                      }
-                      chooseLane = results[0].parking_lane;
-                      connection.query(
-                        'UPDATE parking_detail SET parking_plate = ? WHERE parking_id = ? AND parking_lane = ?',
-                        [plate, placeId, min],
-                        function (err, results, fields) {
-                          connection.query(
-                            'UPDATE booking SET booking_lane = ? WHERE booking_id = ?',
-                            [min, placeId],
-                            function (err, results, fields) {}
-                          );
-                        }
-                      );
-                      return;
-                    }
-                  }
-                );
-                // หาตัวแปรนี้ไม่เจอ
-                if (setLane == true) {
-                  console.log('หยุดที่:', chooseLane);
-                  break;
-                }
-              }
-              res.json({ status: 'ok' });
+      if (quantity < count) {
+        //  Step3 Update Quatity +1
+        var newQuatity = results[0].parking_quantity + 1;
+        connection.execute(
+          'UPDATE parking SET parking_quantity = ? WHERE parking_id = ?',
+          [newQuatity, placeId],
+          function (err, results, fields) {
+            if (err) {
+              res.json({ status: 'error', message: err });
+              return;
             }
-          );
-        } else {
-          res.json({ status: 'error', message: 'Carparking Full!!' });
-        }
+            // Insert แบบไม่มีlane
+            connection.query(
+              'INSERT INTO booking (parking_id,booking_place,booking_name,booking_tel,booking_plate,booking_type,booking_time,booking_date,booking_status,booking_user) VALUES (?,?,?,?,?,?,?,?,?,?)',
+              [
+                placeId,
+                place,
+                name,
+                tel,
+                plate,
+                type,
+                formatTime,
+                date,
+                'Waiting',
+                user,
+              ],
+              function (err, results, fields) {
+                if (err) {
+                  console.log(err);
+                }
+                var bookind_id = results.insertId;
+                // Step4 Find lane
+                var lane = 1;
+                for (var lane = 1; lane <= count; lane++) {
+                  connection.query(
+                    'SELECT * FROM parking_detail WHERE parking_id = ? AND parking_lane = ?',
+                    [placeId, lane],
+                    function (err, results, fields) {
+                      if (results[0].parking_plate == null || '') {
+                        setLane = true;
+                        if (results[0].parking_lane < min) {
+                          min = results[0].parking_lane;
+                          console.log('เลือกเลนที่:', min);
+                        }
+                        //
+                        connection.query(
+                          'SELECT * FROM booking WHERE booking_id = ?',
+                          [],
+                          function (err, results, fields) {
+                            res.json(results);
+                          }
+                        );
+
+                        chooseLane = results[0].parking_lane;
+                        connection.query(
+                          'UPDATE parking_detail SET parking_plate = ? WHERE parking_id = ? AND parking_lane = ?',
+                          [plate, placeId, min],
+                          function (err, results, fields) {
+                            connection.query(
+                              'UPDATE booking SET booking_lane = ? WHERE booking_id = ?',
+                              [min, bookind_id],
+                              function (err, results, fields) {
+                                // อีก15 นาทีหลังจากเวลาที่จองให้เช็คว่าเข้ามาจอดรึยีงถ้าไม่ให้ยกเลิก
+                                console.log('laneUpdate:', min);
+                              }
+                            );
+                          }
+                        );
+                        return;
+                      }
+                    }
+                  );
+                  // หาตัวแปรนี้ไม่เจอ
+                  if (setLane == true) {
+                    console.log('หยุดที่:', chooseLane);
+                    break;
+                  }
+                }
+                res.json({ status: 'ok' });
+              }
+            );
+          }
+        );
+      } else {
+        res.json({ status: 'error', message: 'Carparking Full!!' });
       }
-    );
-  } else {
-    res.json({ status: 'error', message: 'Time booking < 1Hr Or > 2Hr' });
-  }
+    }
+  );
+  // } else {
+  //   res.json({ status: 'error', message: 'Time booking < 1Hr Or > 2Hr' });
+  // }
 });
 
 // History Booking

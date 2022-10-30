@@ -3,16 +3,9 @@ import {Button, FAB, Portal, Provider} from 'react-native-paper';
 import React, {useState, useEffect} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import EncryptedStorage from 'react-native-encrypted-storage';
-import Footer from '../components/Footer';
 
 const HomeScreen = ({navigation}) => {
   const [item1, setItem1] = useState({});
-  const [searchQuery, setSearchQuery] = useState('');
-  const onChangeSearch = query => setSearchQuery(query);
-  const [state, setState] = React.useState({open: false});
-  const onStateChange = ({open}) => setState({open});
-  const {open} = state;
-
   const [user, setUser] = useState({});
   const [isLoading, setIsLoading] = useState(true);
 
@@ -33,6 +26,21 @@ const HomeScreen = ({navigation}) => {
     setIsLoading(false);
     AsyncStorage.setItem('userid', JSON.stringify(data.user[0].userid));
     EncryptedStorage.setItem('userid', JSON.stringify(data.user[0].userid));
+  };
+
+  const handleLogout = async () => {
+    const accessToken = await AsyncStorage.getItem('@accessToken');
+    AsyncStorage.removeItem('userid');
+    setUser({});
+    const responses = await fetch('http://10.0.2.2:6969/api/logout', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + accessToken,
+      },
+    });
+    console.log('useridEiei:', AsyncStorage.getItem('@userid'));
+    navigation.navigate('Login');
   };
 
   useEffect(() => {
@@ -76,40 +84,9 @@ const HomeScreen = ({navigation}) => {
           Create Carparking
         </Button>
       ) : null}
-      <Text style={styles.logoutText}>Logout</Text>
-
-      {/* <Provider>
-        <Portal>
-          <FAB.Group
-            open={open}
-            icon={open ? 'calendar-today' : 'plus'}
-            actions={[
-              {icon: 'plus', onPress: () => console.log('Pressed add')},
-              {
-                icon: 'star',
-                label: 'Star',
-                onPress: () => console.log('Pressed star'),
-              },
-              {
-                icon: 'email',
-                label: 'Email',
-                onPress: () => console.log('Pressed email'),
-              },
-              {
-                icon: 'bell',
-                label: 'Remind',
-                onPress: () => console.log('Pressed notifications'),
-              },
-            ]}
-            onStateChange={onStateChange}
-            onPress={() => {
-              if (open) {
-                // do something if the speed dial is open
-              }
-            }}
-          />
-        </Portal>
-      </Provider> */}
+      <Text style={styles.logoutText} onPress={handleLogout}>
+        Logout
+      </Text>
     </View>
   );
 };

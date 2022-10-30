@@ -11,7 +11,6 @@ import {
 import React, {useState, useEffect} from 'react';
 import DatePicker from 'react-native-date-picker';
 import {Dropdown} from 'react-native-element-dropdown';
-import AntDesign from 'react-native-vector-icons/AntDesign';
 import moment from 'moment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
